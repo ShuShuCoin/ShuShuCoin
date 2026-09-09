@@ -1,5 +1,4 @@
 include sources.mk
-ACLOCAL_AMFLAGS = -I build-aux/m4
 .PHONY: gen FORCE
 .INTERMEDIATE: $(GENBIN)
 

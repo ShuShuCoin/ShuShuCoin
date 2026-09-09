@@ -1,6 +1,5 @@
 .PHONY: clean-precomp precomp
 
-ACLOCAL_AMFLAGS = -I build-aux/m4
 
 # AM_CFLAGS will be automatically prepended to CFLAGS by Automake when compiling some foo
 # which does not have an explicit foo_CFLAGS variable set.
