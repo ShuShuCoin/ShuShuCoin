@@ -10,7 +10,7 @@ $tracked = @(
   'src/secp256k1/Makefile.am', 'src/univalue/Makefile.am', 'src/util.cpp', 'src/util.h'
 )
 $added = @(
-  'contrib/genesis', 'docs/upstream-baseline.md', 'docs/shushucoin-chain-spec.md',
+  'contrib/genesis', 'contrib/mining', 'docs/upstream-baseline.md', 'docs/shushucoin-chain-spec.md',
   'docs/verification/branding-baseline.sha256', 'docs/verification/bootstrap-modified.sha256',
   'scripts/rollback-bootstrap.ps1', 'share/pixmaps/shushucoin.png'
 )

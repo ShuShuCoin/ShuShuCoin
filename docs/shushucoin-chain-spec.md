@@ -58,3 +58,6 @@
 | Scrypt PoW hash | `000c89a32f7990dcd0225da10cb1997e80312530ca2f84b511b1ad38ffac8e27` |
 
 The block-hash placeholder above is replaced by the startup-verified value recorded in `docs/verification/server-build-20260909.md`.
+## First mined mainnet block
+
+Block 1 was accepted at 2026-09-09 09:06:51 UTC with hash 7c87255bd09be09338bccf8c55788ba34b09f5d6bbeaf7a795855a72539c55c9 and a 1,000,000 SHUSHU subsidy. See docs/verification/block-1-20260909.md.
