@@ -61,7 +61,6 @@ uint64_t expectedMinSubsidy(int height) {
 BOOST_AUTO_TEST_CASE(subsidy_first_100k_test)
 {
     const CChainParams& mainParams = Params(CBaseChainParams::MAIN);
-    CAmount nSum = 0;
     arith_uint256 prevHash = UintToArith256(uint256S("0"));
 
     for (int nHeight = 0; nHeight <= 100000; nHeight++) {
@@ -69,13 +68,11 @@ BOOST_AUTO_TEST_CASE(subsidy_first_100k_test)
         CAmount nSubsidy = GetDogecoinBlockSubsidy(nHeight, params, ArithToUint256(prevHash));
         BOOST_CHECK(MoneyRange(nSubsidy));
         BOOST_CHECK(nSubsidy <= 1000000 * COIN);
-        nSum += nSubsidy;
+        const CAmount expected = nHeight < 100000 ? 1000000 * COIN : 500000 * COIN;
+        BOOST_CHECK_EQUAL(nSubsidy, expected);
         // Use nSubsidy to give us some variation in previous block hash, without requiring full block templates
         prevHash += nSubsidy;
     }
-
-    const CAmount expected = 54894174438 * COIN;
-    BOOST_CHECK_EQUAL(expected, nSum);
 }
 
 BOOST_AUTO_TEST_CASE(subsidy_100k_145k_test)
@@ -94,7 +91,7 @@ BOOST_AUTO_TEST_CASE(subsidy_100k_145k_test)
         prevHash += nSubsidy;
     }
 
-    const CAmount expected = 12349960000 * COIN;
+    const CAmount expected = 22500500000LL * COIN;
     BOOST_CHECK_EQUAL(expected, nSum);
 }
 
@@ -107,7 +104,7 @@ BOOST_AUTO_TEST_CASE(subsidy_post_145k_test)
     for (int nHeight = 145000; nHeight < 600000; nHeight++) {
         const Consensus::Params& params = mainParams.GetConsensus(nHeight);
         CAmount nSubsidy = GetDogecoinBlockSubsidy(nHeight, params, prevHash);
-        CAmount nExpectedSubsidy = (500000 >> (nHeight / 100000)) * COIN;
+        CAmount nExpectedSubsidy = (1000000 >> (nHeight / 100000)) * COIN;
         BOOST_CHECK(MoneyRange(nSubsidy));
         BOOST_CHECK_EQUAL(nSubsidy, nExpectedSubsidy);
     }
