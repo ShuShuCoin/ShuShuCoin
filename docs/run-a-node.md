@@ -1,41 +1,43 @@
-# ShuShuCoin 节点运行指南 / Node operator guide
+# Run a ShuShuCoin Mainnet Node
 
-ShuShuCoin is mainnet by default. Do not pass `-testnet` or `-regtest` for a public mainnet node.
+ShuShuCoin runs on mainnet by default. Do not pass `-testnet` or `-regtest` when operating a public mainnet node.
 
-## Network settings / 网络参数
+## Network values
 
 | Setting | Value |
 |---|---|
 | P2P port | `31177/TCP` |
-| RPC port | `31176/TCP` (local only) |
+| RPC port | `31176/TCP`, local only |
 | Bootstrap peer | `106.13.140.227:31177` |
-| Default data directory | Windows: `%APPDATA%\ShuShuCoin`; Linux: `~/.shushucoin` |
+| Windows data directory | `%APPDATA%\ShuShuCoin` |
+| Linux data directory | `~/.shushucoin` |
 
-A public node needs inbound TCP `31177` allowed by the host firewall and, when applicable, the router/security group. Keep RPC `31176` bound to loopback; it is not a public service.
+Open inbound TCP port `31177` in the host firewall and any cloud security group if you want to accept public peers. Keep RPC port `31176` private and bound to localhost.
 
 ## Windows node bundle
 
-1. Download and extract `ShuShuCoin-Node-v0.1.0-mainnet-win64.zip` from the GitHub Release.
-2. Edit `shushucoin.conf` in the extracted `ShuShuCoin-Node` directory if you need a different data directory or connection limit.
-3. Double-click `启动节点.bat`. The console stays open while the node runs.
-4. Open a second PowerShell in the same directory and check the node:
+1. Download and extract `ShuShuCoin-Node-v0.1.0-mainnet-win64.zip`.
+2. Open the `ShuShuCoin-Node` directory.
+3. Review `shushucoin.conf`; it already has the mainnet bootstrap peer and local-only RPC settings.
+4. Run `Start-Node.bat`. Keep its console window open while the node runs.
+5. In a second PowerShell window in that same directory, check status:
 
 ```powershell
-.\shushucoin-cli.exe -datadir="$PSScriptRoot\data" getblockchaininfo
-.\shushucoin-cli.exe -datadir="$PSScriptRoot\data" getnetworkinfo
+.\shushucoin-cli.exe -datadir="$PSScriptRoot\data" -conf="$PSScriptRoot\shushucoin.conf" getblockchaininfo
+.\shushucoin-cli.exe -datadir="$PSScriptRoot\data" -conf="$PSScriptRoot\shushucoin.conf" getnetworkinfo
 ```
 
-5. Stop gracefully:
+6. Stop the node with `Stop-Node.bat`, or run:
 
 ```powershell
-.\shushucoin-cli.exe -datadir="$PSScriptRoot\data" stop
+.\shushucoin-cli.exe -datadir="$PSScriptRoot\data" -conf="$PSScriptRoot\shushucoin.conf" stop
 ```
 
-The bundled configuration connects to the current bootstrap node and listens on P2P port `31177`. Do not copy wallet data into a public node directory unless that machine is intended to hold private keys.
+The bundle contains the daemon, CLI, transaction tool, configuration file, and every required runtime DLL. It runs without a separate compilation step.
 
 ## Linux node from source
 
-On Debian/Ubuntu, install the build dependencies:
+Install build dependencies on Debian or Ubuntu:
 
 ```bash
 sudo apt update
@@ -44,7 +46,7 @@ sudo apt install -y build-essential libtool autotools-dev automake pkg-config py
   libboost-thread-dev libzmq3-dev
 ```
 
-Build the daemon without a GUI or wallet:
+Build a daemon-only node:
 
 ```bash
 git clone https://github.com/ShuShuCoin/ShuShuCoin.git
@@ -68,24 +70,19 @@ dnsseed=0
 maxconnections=64
 ```
 
-Start and check it:
+Start, inspect, and stop the node:
 
 ```bash
 ./src/shushucoind -daemon
 ./src/shushucoin-cli getblockchaininfo
 ./src/shushucoin-cli getnetworkinfo
-```
-
-Stop it cleanly:
-
-```bash
 ./src/shushucoin-cli stop
 ```
 
-## Operations / 运维建议
+## Operational notes
 
-- Back up `wallet.dat` only on machines used as wallets; a non-wallet node does not need wallet keys.
-- Monitor disk usage, peer count, block height, and the debug log.
-- Upgrade by stopping the daemon first, replacing binaries, then starting it again.
-- Verify the Genesis hash and release SHA-256 before joining the network.
-- Do not expose RPC credentials, cookie files, `wallet.dat`, private keys, or mining-pool tokens.
+- A node-only machine does not need a wallet. Do not copy wallet data onto it unless that machine is deliberately used to hold private keys.
+- Verify the release SHA-256, Genesis hash, and source before use.
+- Monitor disk usage, peer count, block height, and `debug.log`.
+- Stop the daemon before an upgrade, replace the binaries, then start it again.
+- Never expose RPC cookies, RPC credentials, wallet files, private keys, or mining-pool tokens.
