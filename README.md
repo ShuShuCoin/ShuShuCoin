@@ -71,8 +71,11 @@ For a public node, open **TCP port 31177** for P2P traffic. Keep RPC port `31176
 ## Source and license / 源码与许可
 
 - Full chain specification: [docs/shushucoin-chain-spec.md](docs/shushucoin-chain-spec.md)
-- Node guide: [docs/run-a-node.md](docs/run-a-node.md)
+- Windows and generic node guide: [docs/run-a-node.md](docs/run-a-node.md)
+- CentOS 8 prebuilt node guide: [docs/run-a-node-centos.md](docs/run-a-node-centos.md)
 - Upstream: [Dogecoin Core](https://github.com/dogecoin/dogecoin), `v1.14.9`
 - License: MIT. Preserve the upstream `COPYING` file and copyright notices.
 
 This is an early mainnet release. Verify source code, binary checksums, and consensus parameters independently before use.
+
+
