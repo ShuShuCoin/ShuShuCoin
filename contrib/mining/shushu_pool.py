@@ -5,7 +5,7 @@ from collections import Counter
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 CLI=['/opt/shushucoin/v1.14.9/bin/shushucoin-cli','-datadir=/root/.shushucoin']; ALPHABET='123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
-JOBS={}; MINERS={}; LOCK=threading.RLock(); JOB_TTL=1800; ACTIVE_SECONDS=45
+JOBS={}; MINERS={}; LOCK=threading.RLock(); JOB_TTL=1800; ACTIVE_SECONDS=45; CHAIN_CACHE={'at':0,'data':{}}
 
 def rpc(method,*params): return subprocess.check_output(CLI+[method]+list(params),universal_newlines=True).strip()
 def dsha(data): return hashlib.sha256(hashlib.sha256(data).digest()).digest()
@@ -67,13 +67,27 @@ def submit(job_id,nonce):
  if int.from_bytes(pow_raw,'little')>job['target']:touch(job['address'],None,submissions=1,rejected=1);return {'accepted':False,'reason':'high-hash'}
  reply=rpc('submitblock',(header+job['body']).hex()); accepted=reply in ('','null'); touch(job['address'],None,submissions=1,**({'accepted':1} if accepted else {'rejected':1}))
  return {'accepted':accepted,'reply':reply or 'null','block_hash':dsha(header)[::-1].hex(),'pow_hash':pow_raw[::-1].hex()}
+def issued_supply(height):
+ remaining=max(0,int(height)); total=0
+ for blocks,reward in ((99999,1000000),(100000,500000),(100000,250000),(100000,125000),(100000,62500),(100000,31250)):
+  take=min(remaining,blocks); total+=take*reward; remaining-=take
+  if not remaining:return total
+ return total+remaining*10000
+def chain_status():
+ now=time.time()
+ with LOCK:
+  if now-CHAIN_CACHE['at']<5:return CHAIN_CACHE['data']
+ info=json.loads(rpc('getblockchaininfo')); peers=json.loads(rpc('getpeerinfo'))
+ data={'height':info['blocks'],'headers':info['headers'],'difficulty':info['difficulty'],'best_block':info['bestblockhash'],'verification_progress':info['verificationprogress'],'issued_supply_shushu':issued_supply(info['blocks']),'p2p_peer_count':len(peers),'p2p_peers':[p.get('addr','unknown') for p in peers]}
+ with LOCK:CHAIN_CACHE.update({'at':now,'data':data})
+ return data
 def snapshot():
  now=time.time()
  with LOCK:
   miners=[dict(m,online=(now-m['last_seen']<=ACTIVE_SECONDS),seconds_since_seen=round(now-m['last_seen'],1)) for m in MINERS.values()]
   miners.sort(key=lambda m:(not m['online'],-m['last_seen']))
   active=[m for m in miners if m['online']]
-  return {'generated_at':int(now),'active_miners':len(active),'known_miners':len(miners),'reported_hashrate_hs':round(sum(m['hashrate'] for m in active),2),'miners':miners,'pool':{'job_ttl_seconds':JOB_TTL,'active_window_seconds':ACTIVE_SECONDS,'blocks_accepted':sum(m['accepted'] for m in miners),'stale_submissions':sum(m['stale'] for m in miners)}}
+  return {'generated_at':int(now),'active_miners':len(active),'known_miners':len(miners),'reported_hashrate_hs':round(sum(m['hashrate'] for m in active),2),'miners':miners,'pool':{'job_ttl_seconds':JOB_TTL,'active_window_seconds':ACTIVE_SECONDS,'blocks_accepted':sum(m['accepted'] for m in miners),'stale_submissions':sum(m['stale'] for m in miners)},'chain':chain_status()}
 class Handler(socketserver.StreamRequestHandler):
  def handle(self):
   try:
@@ -98,7 +112,7 @@ class StatusHandler(BaseHTTPRequestHandler):
   if self.path=='/status.json':body=json.dumps(data,indent=2).encode();ctype='application/json'
   else:
    rows=''.join('<tr><td>%s</td><td>%s</td><td>%.1f</td><td>%s</td><td>%s</td><td>%s</td></tr>'%(m['address'],('online' if m['online'] else 'idle'),m['hashrate'],m['accepted'],m['stale'],m['seconds_since_seen']) for m in data['miners'])
-   body=('<!doctype html><meta charset=utf-8><title>ShuShuCoin Pool</title><h1>ShuShuCoin Pool Status</h1><p>Active miners: %s | Reported hashrate: %s H/s | Accepted blocks: %s | Stale submits: %s</p><table border=1 cellpadding=6><tr><th>Address</th><th>Status</th><th>H/s</th><th>Blocks</th><th>Stale</th><th>Last seen (s)</th></tr>%s</table><p><a href=/status.json>JSON</a></p>'%(data['active_miners'],data['reported_hashrate_hs'],data['pool']['blocks_accepted'],data['pool']['stale_submissions'],rows)).encode();ctype='text/html; charset=utf-8'
+   body=('<!doctype html><meta charset=utf-8><title>ShuShuCoin Pool</title><h1>ShuShuCoin Pool Status</h1><p>Chain height: %s | Headers: %s | Difficulty: %s | Issued supply: %s SHUSHU | P2P peers: %s</p><p>Active miners: %s | Reported hashrate: %s H/s | Accepted blocks: %s | Stale submits: %s</p><p>P2P peers are network nodes. The protocol does not identify whether a peer operates a mining pool.</p><table border=1 cellpadding=6><tr><th>Address</th><th>Status</th><th>H/s</th><th>Blocks</th><th>Stale</th><th>Last seen (s)</th></tr>%s</table><p><a href=/status.json>JSON</a></p>'%(data['chain']['height'],data['chain']['headers'],data['chain']['difficulty'],data['chain']['issued_supply_shushu'],data['chain']['p2p_peer_count'],data['active_miners'],data['reported_hashrate_hs'],data['pool']['blocks_accepted'],data['pool']['stale_submissions'],rows)).encode();ctype='text/html; charset=utf-8'
   self.send_response(200);self.send_header('Content-Type',ctype);self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
  def log_message(self,*args):pass
 if __name__=='__main__':
@@ -106,4 +120,6 @@ if __name__=='__main__':
  if not token:raise SystemExit('SHUSHU_POOL_TOKEN is required')
  status=StatusServer((a.status_bind,a.status_port),StatusHandler);threading.Thread(target=status.serve_forever,daemon=True).start()
  with Server((a.bind,a.port),Handler) as server:server.token=token;server.serve_forever()
+
+
 
