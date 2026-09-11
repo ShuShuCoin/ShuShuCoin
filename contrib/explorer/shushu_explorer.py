@@ -23,7 +23,7 @@ class H(BaseHTTPRequestHandler):
   u=urlparse(self.path)
   try:
    if u.path=='/api/chain':
-    c=rpc('getblockchaininfo');self.sendj({'height':c['blocks'],'difficulty':c['difficulty'],'best_block':c['bestblockhash'],'issued_supply_shushu':supply(c['blocks'])});return
+    c=rpc('getblockchaininfo');self.sendj({'height':c['blocks'],'difficulty':c['difficulty'],'best_block':c['bestblockhash'],'issued_supply_shushu':supply(c['blocks']),'estimated_network_hashrate_hs':round(c['difficulty']*4294967296/60,2)});return
    if u.path=='/api/blocks':self.sendj(blocks());return
    if u.path=='/api/search':
     q=parse_qs(u.query).get('q',[''])[0].strip()
@@ -35,4 +35,5 @@ class H(BaseHTTPRequestHandler):
   except Exception as e:self.sendj({'error':str(e)})
  def log_message(self,*a):pass
 HTTPServer(('0.0.0.0',3335),H).serve_forever()
+
 

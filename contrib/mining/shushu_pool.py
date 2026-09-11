@@ -78,7 +78,7 @@ def chain_status():
  with LOCK:
   if now-CHAIN_CACHE['at']<5:return CHAIN_CACHE['data']
  info=json.loads(rpc('getblockchaininfo')); peers=json.loads(rpc('getpeerinfo'))
- data={'height':info['blocks'],'headers':info['headers'],'difficulty':info['difficulty'],'best_block':info['bestblockhash'],'verification_progress':info['verificationprogress'],'issued_supply_shushu':issued_supply(info['blocks']),'p2p_peer_count':len(peers),'p2p_peers':[p.get('addr','unknown') for p in peers]}
+ data={'height':info['blocks'],'headers':info['headers'],'difficulty':info['difficulty'],'best_block':info['bestblockhash'],'verification_progress':info['verificationprogress'],'issued_supply_shushu':issued_supply(info['blocks']),'estimated_network_hashrate_hs':round(info['difficulty']*4294967296/60,2),'p2p_peer_count':len(peers),'p2p_peers':[p.get('addr','unknown') for p in peers]}
  with LOCK:CHAIN_CACHE.update({'at':now,'data':data})
  return data
 def snapshot():
@@ -120,6 +120,7 @@ if __name__=='__main__':
  if not token:raise SystemExit('SHUSHU_POOL_TOKEN is required')
  status=StatusServer((a.status_bind,a.status_port),StatusHandler);threading.Thread(target=status.serve_forever,daemon=True).start()
  with Server((a.bind,a.port),Handler) as server:server.token=token;server.serve_forever()
+
 
 
 
