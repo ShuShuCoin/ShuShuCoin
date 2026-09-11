@@ -31,8 +31,18 @@ def blocks():
   out.append({'height':h,'hash':b['hash'],'time':b['time'],'tx':len(b['tx']),'confirmations':b['confirmations'],'size':b.get('size',0),'miner_address':payout(coinbase),'reward_shushu':sum(v.get('value',0) for v in coinbase.get('vout',[]))})
  return list(reversed(out))
 def address_result(q):
- r=rpc('scantxoutset','start',json.dumps(['addr(%s)' % q]))
- return {'query_type':'address','address':q,'note':'Current unspent outputs only; this does not represent complete address history.','total_amount_shushu':r.get('total_amount',0),'unspent_count':len(r.get('unspents',[])),'unspents':r.get('unspents',[])}
+ # This chain does not expose scantxoutset, so scan its compact mainnet history.
+ # Limit keeps the explorer responsive as the chain grows.
+ tip=rpc('getblockcount'); first=max(0,tip-9999); matches=[]; total=0
+ for h in range(first,tip+1):
+  b=rpc('getblock',rpc('getblockhash',str(h)),'2')
+  for tx in b.get('tx',[]):
+   for v in tx.get('vout',[]):
+    s=v.get('scriptPubKey',{}); addrs=s.get('addresses') or [s.get('address')]
+    if q in addrs:
+     amount=v.get('value',0);total+=amount
+     matches.append({'height':h,'block_hash':b['hash'],'time':b['time'],'txid':tx['txid'],'vout':v.get('n'),'amount_shushu':amount,'confirmations':b.get('confirmations',0)})
+ return {'query_type':'address','address':q,'note':'Matching outputs in the most recent 10,000 blocks. Spend status is not indexed yet.','total_received_shushu':total,'matching_output_count':len(matches),'outputs':list(reversed(matches))}
 class H(BaseHTTPRequestHandler):
  def sendj(self,x,status=200):
   b=json.dumps(x,indent=2).encode();self.send_response(status);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(b)));self.end_headers();self.wfile.write(b)
@@ -57,4 +67,5 @@ class H(BaseHTTPRequestHandler):
   except Exception as e:self.sendj({'error':'Internal explorer error: '+str(e)},500)
  def log_message(self,*a):pass
 HTTPServer(('0.0.0.0',3335),H).serve_forever()
+
 
