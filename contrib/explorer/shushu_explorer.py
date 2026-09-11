@@ -9,8 +9,9 @@ def rpc(*args):
  p=subprocess.run(CLI+list(args),stdout=subprocess.PIPE,stderr=subprocess.PIPE,universal_newlines=True)
  if p.returncode:
   raise RPCError((p.stderr or p.stdout or 'RPC command failed').strip())
- try:return json.loads(p.stdout.strip())
- except ValueError as e:raise RPCError('Invalid RPC response: '+str(e))
+ raw=p.stdout.strip()
+ try:return json.loads(raw)
+ except ValueError:return raw
 def supply(h):
  total=0
  for n,r in ((99999,1000000),(100000,500000),(100000,250000),(100000,125000),(100000,62500),(100000,31250)):
@@ -56,3 +57,4 @@ class H(BaseHTTPRequestHandler):
   except Exception as e:self.sendj({'error':'Internal explorer error: '+str(e)},500)
  def log_message(self,*a):pass
 HTTPServer(('0.0.0.0',3335),H).serve_forever()
+
